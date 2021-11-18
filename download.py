@@ -1,35 +1,82 @@
 import time
 import requests
-from filenamer import lex
-from filename_parser import FilenameParser
+from filename_compiler import FilenameCompiler, CompileError
+from os import path, makedirs
+from mimetypes import guess_extension
+from argparse import ArgumentParser
 
 def main():
 	#interactive()
 	# Read args
+
+	#args = parseFlags()
+	#print(args)
+	#return
 
 	# Read config
 
 	url = "http://192.168.1.101"
 	proxies = None
 
-	search = Search({"tags":"renamon"}, url, proxies)
+	search = Search({"tags":"gatomon"}, url, proxies)
 
-	parser = FilenameParser()
+	compiler = FCompilers()
+	compiler.add("::ID:::? ~:creator:::?[3] :character|species=renamon=gatomon:::? (:gender:):::Ext::")
+	compiler.add("::Cid::::Ext::")
 
-	lex(":~:creator:~: :?[2](:character=krystal|species=renamon=gatomon:)::[:5] :Sha256::", parser.tokenStream)
+	gateway = Gateway("http://localhost:8080")
+	storage = Storage("gatomon")
+
+	prog = ProgressBar(0)
 
 	c = 1
 	for post in search:
-		print("[%d/%d] %d %s" % (c, search.total, post["ID"], post["Hash"]))
-		kvs = []
-		for tag in post["Tags"]:
-			kvs.append({tag["Namespace"]:tag["Tag"]})
-		kvs.append({"Hash":post["Hash"]})
-		kvs.append({"Sha256":post["Sha256"]})
-		kvs.append({"Md5":post["Md5"]})
-		kvs.append({"ID":post["ID"]})
-		print(parser.compile(kvs))
+		prog.setMax(search.total)
+		prog.inc()
+		prog.display()
+
+		cid = post["Hash"]
+		#print("[%d/%d] %d %s" % (c, search.total, post["ID"], cid)) 
+
+		if cid not in storage:
+			kvs = postToDictList(post)
+			filename = compiler.compile(kvs)
+			prog.print("%s -> %s" %(cid, filename))
+			storage.write(cid, filename, gateway.get(cid))
 		c += 1
+
+def parseFlags():
+	parser = ArgumentParser(description="The Permanent Booru Downloader")
+	parser.add_argument("path", help="data directory")
+	parser.add_argument("--overwrite", metavar="", help="overwrite config file")
+
+	searchGroup = parser.add_argument_group(title="search options")
+	searchGroup.add_argument("-a", "--and", metavar="", help="tags to download (AND)")
+	searchGroup.add_argument("-o", "--or", metavar="", help="tags to download (OR)")
+	searchGroup.add_argument("-f", "--filter", metavar="", help="tags to filter")
+	searchGroup.add_argument("-u", "--unless", metavar="", help="filter only if none of these are present")
+	searchGroup.add_argument("--mime", metavar="", help="mimetype")
+
+	return parser.parse_args()
+
+
+def postToDictList(post):
+	kvs = []
+	for tag in post["Tags"]:
+		kvs.append({tag["Namespace"]:tag["Tag"]})
+	kvs.append({"Cid":post["Hash"]})
+	kvs.append({"Sha256":post["Sha256"]})
+	kvs.append({"Md5":post["Md5"]})
+	kvs.append({"ID":str(post["ID"])})
+
+	ext = guess_extension(post["Mime"])
+	if ext is None:
+		ext = ".bin"
+
+	kvs.append({"Ext":ext})
+	
+
+	return kvs
 
 
 def interactive():
@@ -87,6 +134,25 @@ def saveConfig(path, conf):
 		json.dump(conf, f)
 
 
+class FCompilers:
+	def __init__(self):
+		self.compilers = []
+
+	def add(self, string):
+		self.compilers.append(FilenameCompiler(string))
+
+	def compile(self, kvs):
+		errors = []
+		for comp in self.compilers:
+			try:
+				filename = comp.compile(kvs)
+				return filename
+			except CompileError as e:
+				errors.append(e)
+
+		raise Exception(errors)
+
+
 class ServerError(Exception):
 	pass
 
@@ -106,7 +172,7 @@ class Search:
 	# Returns a post and fetches the next page if necessary
 	def __next__(self):
 		if len(self.posts) > 0:
-			return self.posts.pop()
+			return self.posts.pop(0)
 
 		sleepTimer = 10
 		while True:
@@ -115,12 +181,12 @@ class Search:
 				break
 			except ConnectionError as e:
 				print("An error ocurred: %s" % e)
-				print(f"Retrying in %d seconds" % sleepTimer)
+				print("Retrying in %d seconds" % sleepTimer)
 				time.sleep(sleepTimer)
 				sleepTimer += math.floor(sleepTimer / 2)
 
 		if len(self.posts) > 0:
-			return self.posts.pop()
+			return self.posts.pop(0)
 		else:
 			raise StopIteration
 
@@ -129,6 +195,7 @@ class Search:
 	def fetchNextPage(self):
 		params = dict(self.options)
 		params["offset"] = self.page
+		params["order"] = "asc"
 
 		# Sleep between requests
 		time.sleep(max(0, self.sleep - time.time() + 5))
@@ -148,25 +215,52 @@ class Search:
 
 		self.page += 1
 
+class Gateway:
+	def __init__(self, url, proxies=None):
+		self.proxies = proxies
+		self.url = url
+
+	def get(self, cid):
+		resp = requests.get(self.url + "/ipfs/%s" % cid, proxies=self.proxies)
+		resp.raise_for_status()
+
+		return resp.content
 
 class Storage:
-	def __init__(self, id, path):
-		#self.id = id
-		#self.path = path
-		self.cacheFilePath = os.path.join(self.path, ".%s.config" % self.id)
-		self.dataDir = os.path.join(self.path, self.id)
+	def __init__(self, dataDir):
+		self.dataDir = dataDir
+		self.cacheFilePath = path.join(self.dataDir, ".cache")
+
+		makedirs(self.dataDir, exist_ok=True)
 		
 		self.initCache()
+	
+	def __contains__(self, item):
+		return item in self.cache
 
 	def initCache(self):
-		self.cahce = set()
-		with open(self.cacheFilePath) as f:
-			self.cache.add(f.readline())
+		self.cache = set()
+		if not path.exists(self.cacheFilePath):
+			with open(self.cacheFilePath, "w"):
+				pass
 
-	def write(self, hash, filename, data):
-		with open(os.path.join(self.dataDir, filename), "wb") as f:
+		with open(self.cacheFilePath) as f:
+			for line in f:
+				s = line.split(" ", 1)
+				if len(s) > 0:
+					cid = s[0].strip()
+					if len(cid) > 0:
+						self.cache.add(cid)
+
+	def write(self, cid, filename, data):
+		with open(path.join(self.dataDir, filename), "wb") as f:
 			f.write(data)
-			self.writeCache(hash)
+			self.writeCache(cid, filename)
+	
+	def writeCache(self, cid, filename):
+		with open(self.cacheFilePath, "a") as f:
+			f.write("%s %s\n" % (cid, filename))
+
 
 
 

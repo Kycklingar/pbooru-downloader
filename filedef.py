@@ -1,5 +1,10 @@
 from tokens import Token
 
+def lex(text, consumer=None):
+	l = lexer(text, consumer)
+
+	return l.lex()
+
 def printConsumer(token):
 	print(token)
 
@@ -8,26 +13,37 @@ class SyntaxError(Exception):
 
 NUMERIC = "1234567890"
 
-
-def lex(text, consumer=None):
-	l = lexer(text, consumer)
-
-	return l.lex()
-
 # Defines a syntax for filenames based on what namespaced tags exists in a post
 # Defenition as follows:
-#	prepend with o
+#	start match with :
+#		optionally set optional flag with ?
 #		optionally set max number of instances and max length of instance
-#		[maxInstance:maxLengthPerInstance]
-#	prepend text
-#	begin with :
-#	namespace
-#	optional =/!=
-#		must be equal or not equal
-#	optional |
-#	exit with :
+#			[maxInstances:maxLength]
+#		prepend text
+#		start namespace constraint with :
+#			namespace
+#			optional =/!
+#				must be equal or not equal
+#			optional | followed by new namespace
+#		end with :
+#		postpone text
+#	end with :
+#
+# Explained examples:
+#	Basic namespace match:
+#		"::namespace::"
+#		This will match the namespace and compilation will fail if no match is found
+#	Basic optional namespace with max instaces:
+#		":?[2]:namespace::
+#		This will match none or at most two of 'namespace'
+#	With multiple namespace and conditionals:
+#		":?[2:10]:character=foo|species!bar::"
+#		This will match at most 2 of either character where
+#		character is foo or species where species is not bar
+#		and truncating the length to 10
+#
 # Example:
-#	r artist:creator:-o[1]:species=renamon=gatomon|character!=krystal:
+#	":artist:creator::-:?[1]:species=renamon=gatomon|character!krystal::"
 #	":artist:creator:-::character: :?[1:10]spec:species=renamon=gatomon:"
 class lexer:
 	def lex(self):
@@ -130,7 +146,7 @@ class lexer:
 				self.emitIfAny(Token.PREPEND, self.indexed(start))
 				return self.lexNamespace
 
-		raise SyntaxError("Sequence end in prepend state; unmatched :")
+		raise SyntaxError("Sequence end in prepend state:\n %s" % self.text[:start])
 
 	def lexPostpend(self):
 		start = self.index
@@ -139,7 +155,7 @@ class lexer:
 				self.emitIfAny(Token.POSTPEND, self.indexed(start))
 				self.emit(Token.END, ":")
 				return self.lexText
-		raise SyntaxError("Sequence end in postpend state; unmatched :")
+		raise SyntaxError("Sequence end in postpend state:\n %s" % self.text[:start])
 
 	def lexNamespace(self):
 		start = self.index
@@ -154,7 +170,7 @@ class lexer:
 			if c == "|":
 				self.emit(Token.NAMESPACE, self.indexed(start))
 				return self.lexNamespace
-		raise SyntaxError("Sequence end in namespace state; unmatched :")
+		raise SyntaxError("Sequence end in namespace state:\n %s" % self.text[:start])
 
 
 	def lexCond(self):
@@ -172,7 +188,7 @@ class lexer:
 				break
 			
 		if nextState == None:
-			raise SyntaxError("Sequence end in cond state; unmatched :")
+			raise SyntaxError("Sequence end in cond state:\n %s" % self.text[:start])
 
 		if len(self.indexed(start)) == 0:
 			raise SyntaxError("Expected CONDARG but got nothing in position %d" % self.index)

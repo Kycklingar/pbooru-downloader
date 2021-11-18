@@ -1,10 +1,10 @@
 from tokens import Token
-from filenamer import lex
+from filedef import lex
 
 class CompileError(Exception):
 	pass
 
-class FilenameParser:
+class FilenameCompiler:
 	def __init__(self, string):
 		self.parseToken = self.tokenText
 		self.prints = []
@@ -29,7 +29,7 @@ class FilenameParser:
 		return ret
 		
 	def tokenStream(self, token):
-		print(token)
+		#print(token)
 		self.parseToken(token)
 
 	def tokenText(self, token):
@@ -89,22 +89,21 @@ class Match:
 		self.lastCondVals = None
 	
 	def __str__(self):
-		return self.prepend
+
+		return self.prepend + " ".join(self.matchers.keys()) + self.postpend
 	
 	def compile(self, kvs):
 		#ret = self.prepend
 		ret = ""
 		success = True
-		n = 0
 		strings = []
 		for kv in kvs:
-			if self.maxInstances > 0 and n > self.maxInstances:
+			if self.maxInstances > 0 and len(strings) >= self.maxInstances:
 				break
 
 			for key, val in kv.items():
 				if key in self.matchers:
 					if self.matchers[key].match(val):
-						n += 1
 						strings.append(val)
 						break
 
