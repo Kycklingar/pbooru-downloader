@@ -4,6 +4,7 @@ from filename_compiler import FilenameCompiler, CompileError
 from os import path, makedirs
 from mimetypes import guess_extension
 from argparse import ArgumentParser
+from progressbar import ProgressBar
 
 def main():
 	#interactive()
@@ -41,7 +42,7 @@ def main():
 		if cid not in storage:
 			kvs = postToDictList(post)
 			filename = compiler.compile(kvs)
-			prog.print("%s -> %s" %(cid, filename))
+			prog.print("...%s -> %s" %(cid[-6:], filename))
 			storage.write(cid, filename, gateway.get(cid))
 		c += 1
 
