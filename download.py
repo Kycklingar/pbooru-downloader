@@ -5,7 +5,7 @@ from os import path, makedirs
 from mimetypes import guess_extension
 from argparse import ArgumentParser
 from progressbar import ProgressBar
-from math import floor
+from math import floor, ceil
 from signal import signal, SIGINT
 
 def main():
@@ -239,6 +239,10 @@ class Search:
 
 
 	def fetchNextPage(self):
+		if self.total > 0:
+			if self.page >= int(ceil(self.total / 50)):
+				return
+
 		params = dict(self.options)
 		params["offset"] = self.page
 		params["order"] = "asc"
