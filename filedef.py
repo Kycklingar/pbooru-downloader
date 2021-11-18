@@ -99,7 +99,7 @@ class lexer:
 		start = self.index
 		nextState = None
 		for c in self:
-			if c == ":":
+			if c == "<":
 				nextState = self.lexNewDef
 				break
 
@@ -107,7 +107,7 @@ class lexer:
 		return nextState
 
 	def lexNewDef(self):
-		self.emit(Token.START, ":")
+		self.emit(Token.START, "<")
 		#self.any(" ")
 
 		# optional or requriement
@@ -128,11 +128,20 @@ class lexer:
 		self.next()
 
 		if self.peek() != ":":
-			self.emit(Token.MAXINST, self.any(NUMERIC))
+			nums = self.any(NUMERIC)
+			if len(nums) <= 0:
+				raise SyntaxError("Expected numeric value but got %s in position %d" %(self.peek(), self.index))
+			self.emit(Token.MAXINST, nums)
 
 		if self.peek() == ":":
 			self.next()
-			self.emit(Token.MAXLENGTH, self.any(NUMERIC))
+			neg = ""
+			if self.peek() == "-":
+				neg = self.next()
+			nums = self.any(NUMERIC)
+			if len(nums) <= 0:
+				raise SyntaxError("Expected numeric value but got %s in position %d" %(self.peek(), self.index))
+			self.emit(Token.MAXLENGTH, neg + nums)
 
 		if self.next() != "]":
 			raise SyntaxError("Expected ] got %s in position %d" % (self.text[self.index], self.index))
@@ -144,16 +153,25 @@ class lexer:
 		for c in self:
 			if c == ":":
 				self.emitIfAny(Token.PREPEND, self.indexed(start))
-				return self.lexNamespace
+				return self.lexSep
 
 		raise SyntaxError("Sequence end in prepend state:\n %s" % self.text[:start])
+
+	def lexSep(self):
+		start = self.index
+		for c in self:
+			if c == ":":
+				self.emitIfAny(Token.SEPARATOR, self.indexed(start))
+				return self.lexNamespace
+
+		raise SyntaxError("Sequence end in separator state:\n %s" % self.text[:start])
 
 	def lexPostpend(self):
 		start = self.index
 		for c in self:
-			if c == ":":
+			if c == ">":
 				self.emitIfAny(Token.POSTPEND, self.indexed(start))
-				self.emit(Token.END, ":")
+				self.emit(Token.END, c)
 				return self.lexText
 		raise SyntaxError("Sequence end in postpend state:\n %s" % self.text[:start])
 

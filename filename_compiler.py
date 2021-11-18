@@ -52,6 +52,8 @@ class FilenameCompiler:
 			self.con.maxLength = int(text)
 		elif tt == Token.PREPEND:
 			self.con.prepend = text
+		elif tt == Token.SEPARATOR:
+			self.con.sep = text
 		elif tt == Token.POSTPEND:
 			self.con.postpend = text
 		elif tt == Token.NAMESPACE:
@@ -87,10 +89,10 @@ class Match:
 		self.postpend = ""
 		self.optional = False
 		self.lastCondVals = None
+		self.sep = " "
 	
 	def __str__(self):
-
-		return self.prepend + " ".join(self.matchers.keys()) + self.postpend
+		return "<%s:%s:%s>" % (self.prepend, " ".join(self.matchers.keys()), self.postpend)
 	
 	def compile(self, kvs):
 		#ret = self.prepend
@@ -107,13 +109,15 @@ class Match:
 						strings.append(val)
 						break
 
-		ret = " ".join(strings)
+		ret = self.sep.join(strings)
 		if not self.optional and len(strings) <= 0:
 			success = False
 
 		if len(strings) > 0: 
 			if self.maxLength > 0:
 				ret = ret[:self.maxLength]
+			elif self.maxLength < 0:
+				ret = ret[self.maxLength:]
 			ret = self.prepend + ret + self.postpend
 
 

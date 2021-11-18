@@ -12,4 +12,5 @@ class Token(Enum):
 	TEXT      = 8
 	END       = 9
 	POSTPEND  = 10
+	SEPARATOR = 11
 
