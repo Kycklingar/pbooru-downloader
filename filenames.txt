@@ -1,6 +1,6 @@
 # Namespace definitions are parsed in four distinct sections
 # < "prepend" : "separator" : "namespace" : "postpend" >
-# definitions start with a < and the first section called a prepend is defined as follows:
+# Definitions start with a < and the first section called a prepend is defined as follows:
 #	prepend samples: "?[2]Artist", "[:-5]", "?("
 #
 #	? as the first character implies the namespace is optional, if this is omitted
@@ -47,10 +47,10 @@
 # Uncomment to use
 
 ## Result: "99 ~artistname1, artistname2~ char1, char2, char3 (gender1, gender2).png"
-#<::ID:><? ~:, :creator!unknown artist=sound warning:~><?[3] :, :character|species=renamon=gatomon:><? (:, :gender:)><::Ext:>
+<::ID:><? ~:, :creator!unknown artist=sound warning:~><?[3] :, :character|species=renamon=gatomon:><? (:, :gender:)><::Ext:>
 
 ## Result: bafybeig___.png
-#<::Cid:><::Ext:>
+<::Cid:><::Ext:>
 
 ## Result: f3d23___.png
 #<::Sha256:><::Ext:>

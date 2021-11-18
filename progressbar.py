@@ -2,10 +2,14 @@ from sys import stdout
 from shutil import get_terminal_size
 
 class ProgressBar:
-	def __init__(self, max):
+	def __init__(self, max, disable_bar=False):
 		self.max = max
 		self.i = 0
 		self.lineWidth = 0
+		self.print = self.printWithBar
+		if disable_bar:
+			self.print = self.printWithoutBar
+			self.display = self.nothing
 	
 	def setMax(self, max):
 		self.max = max
@@ -13,8 +17,14 @@ class ProgressBar:
 	def inc(self, n=1):
 		self.i += n
 	
+	def nothing(self):
+		pass
+
+	def printWithoutBar(self, text):
+		print("[%d/%d] %s" % (self.i, self.max, text))
+
 	# Print to stdout witout disturbing the progress bar
-	def print(self, text):
+	def printWithBar(self, text):
 		self.clear()
 		stdout.write(text + "\n")
 		self.printbar()

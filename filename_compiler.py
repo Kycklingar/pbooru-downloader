@@ -18,10 +18,10 @@ class FilenameCompiler:
 			ret += str(p)
 		return ret
 
-	def compile(self, kvs):
+	def compile(self, nstlist):
 		ret = ""
 		for p in self.prints:
-			(s, suc) = p.compile(kvs)
+			(s, suc) = p.compile(nstlist)
 			if not suc:
 				raise CompileError("Required condition failed %s" % p)
 			ret += s
@@ -75,7 +75,7 @@ class String:
 	def __str__(self):
 		return self.string
 	
-	def compile(self, kvs):
+	def compile(self, nstlist):
 		return (self.string, True)
 
 class Match:
@@ -94,20 +94,20 @@ class Match:
 	def __str__(self):
 		return "<%s:%s:%s>" % (self.prepend, " ".join(self.matchers.keys()), self.postpend)
 	
-	def compile(self, kvs):
+	def compile(self, nstlist):
 		#ret = self.prepend
 		ret = ""
 		success = True
 		strings = []
-		for kv in kvs:
+		for nstuple in nstlist:
 			if self.maxInstances > 0 and len(strings) >= self.maxInstances:
 				break
 
-			for key, val in kv.items():
-				if key in self.matchers:
-					if self.matchers[key].match(val):
-						strings.append(val)
-						break
+			#for key, val in kv.items():
+			(key, val) = nstuple
+			if key in self.matchers:
+				if self.matchers[key].match(val):
+					strings.append(val)
 
 		ret = self.sep.join(strings)
 		if not self.optional and len(strings) <= 0:

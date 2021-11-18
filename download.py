@@ -5,6 +5,7 @@ from os import path, makedirs
 from mimetypes import guess_extension
 from argparse import ArgumentParser
 from progressbar import ProgressBar
+from math import floor
 
 def main():
 	#interactive()
@@ -15,16 +16,18 @@ def main():
 
 	# Read config
 
-	search = Search(sopts, args.url, args.proxy)
+	startPage = int(floor((args.start_from / 50)))
+
+	search = Search(sopts, args.url, args.proxy, startPage)
 
 	compiler = FCompilers(args.filenamer)
 
 	gateway = Gateway(args.gateway, proxy=args.gateway_proxy)
 	storage = Storage(args.path)
 
-	prog = ProgressBar(0)
+	prog = ProgressBar(0, args.disable_progressbar)
+	prog.inc(startPage * 50)
 
-	c = 1
 	for post in search:
 		prog.setMax(search.total)
 		prog.inc()
@@ -37,7 +40,8 @@ def main():
 			filename = compiler.compile(kvs)
 			prog.print("...%s -> %s" %(cid[-6:], filename))
 			storage.write(cid, filename, gateway.get(cid))
-		c += 1
+
+	print()
 
 def parseFlags():
 	defaultBooru = "http://owmvhpxyisu6fgd7r2fcswgavs7jly4znldaey33utadwmgbbp4pysad.onion"
@@ -49,6 +53,8 @@ def parseFlags():
 	parser.add_argument("--url", default=defaultBooru, help="default: %s" % defaultBooru)
 	parser.add_argument("--proxy", default="socks5h://localhost:9050", help="default: localhost:9050 use socks5h://localhost:9150 for tor browser")
 	parser.add_argument("--filenamer", help="filename compiler defenitions file")
+	parser.add_argument("--start-from", type=int, default="0", help="offset the starting post")
+	parser.add_argument("--disable-progressbar", action="store_true", help="disables the progress bar")
 
 	searchGroup = parser.add_argument_group(title="search options")
 	searchGroup.add_argument("-a", "--and", metavar="", help="tags to download (AND)", dest="tand")
@@ -84,17 +90,17 @@ def searchKvs(args):
 def postToDictList(post):
 	kvs = []
 	for tag in post["Tags"]:
-		kvs.append({tag["Namespace"]:tag["Tag"]})
-	kvs.append({"Cid":post["Hash"]})
-	kvs.append({"Sha256":post["Sha256"]})
-	kvs.append({"Md5":post["Md5"]})
-	kvs.append({"ID":str(post["ID"])})
+		kvs.append((tag["Namespace"], tag["Tag"]))
+	kvs.append(("Cid", post["Hash"]))
+	kvs.append(("Sha256", post["Sha256"]))
+	kvs.append(("Md5", post["Md5"]))
+	kvs.append(("ID", str(post["ID"])))
 
 	ext = guess_extension(post["Mime"])
 	if ext is None:
 		ext = ".bin"
 
-	kvs.append({"Ext":ext})
+	kvs.append(("Ext", ext))
 	
 
 	return kvs
@@ -189,7 +195,7 @@ class ServerError(Exception):
 	pass
 
 class Search:
-	def __init__(self, options, url, proxy):
+	def __init__(self, options, url, proxy, start):
 		self.options = options
 		self.posts = []
 		self.url = url
@@ -199,9 +205,9 @@ class Search:
 
 		self.sleep = 0
 		self.total = 0
+		self.page = start
 	
 	def __iter__(self):
-		self.page = 0
 		return self
 
 	# Returns a post and fetches the next page if necessary
