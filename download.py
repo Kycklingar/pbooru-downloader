@@ -6,6 +6,7 @@ from mimetypes import guess_extension
 from argparse import ArgumentParser
 from progressbar import ProgressBar
 from math import floor
+from signal import signal, SIGINT
 
 def main():
 	#interactive()
@@ -42,6 +43,10 @@ def main():
 			storage.write(cid, filename, gateway.get(cid))
 
 	print()
+
+def ketchup(signum, frame):
+	exit(1)
+signal(SIGINT, ketchup)
 
 def parseFlags():
 	defaultBooru = "http://owmvhpxyisu6fgd7r2fcswgavs7jly4znldaey33utadwmgbbp4pysad.onion"
