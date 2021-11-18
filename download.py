@@ -47,7 +47,7 @@ def parseFlags():
 	parser.add_argument("path", help="data directory")
 	parser.add_argument("--overwrite", metavar="", help="overwrite config file")
 	parser.add_argument("--url", default=defaultBooru, help="default: %s" % defaultBooru)
-	parser.add_argument("--proxy", default="localhost:9050", help="default: localhost:9050 use localhost:9051 for tor browser")
+	parser.add_argument("--proxy", default="socks5h://localhost:9050", help="default: localhost:9050 use socks5h://localhost:9051 for tor browser")
 	parser.add_argument("--filenamer", help="filename compiler defenitions file")
 
 	searchGroup = parser.add_argument_group(title="search options")
@@ -193,6 +193,7 @@ class Search:
 		self.options = options
 		self.posts = []
 		self.url = url
+		self.proxies = None
 		if proxy:
 			self.proxies = {"http": proxy}
 
@@ -251,6 +252,7 @@ class Search:
 
 class Gateway:
 	def __init__(self, url, proxy=None):
+		self.proxies = None
 		if proxy:
 			self.proxies = {"http":proxy}
 		self.url = url

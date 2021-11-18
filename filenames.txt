@@ -1,0 +1,57 @@
+# Namespace definitions are parsed in four distinct sections
+# < "prepend" : "separator" : "namespace" : "postpend" >
+# definitions start with a < and the first section called a prepend is defined as follows:
+#	prepend samples: "?[2]Artist", "[:-5]", "?("
+#
+#	? as the first character implies the namespace is optional, if this is omitted
+#		then the compilation will fail and the next definition wil be tried
+#	[ as the next character opens a limiter definition which looks like [N:M]
+#		where N is the max instances of this namespace to use and M is the
+#		max length of the string produced by this namespace.
+#		The limiter can be defined with or without N and M as long as one
+#		of them is supplied, for example: [:M] [N] [N:-M] [:-M]
+#	The rest of the prepend section defines what will go before the namespace
+#		as long as at least one namespace is available
+# : closes the prepend section and start the separator section
+#	separator sample: ", "
+#
+#	The separator section is pretty straight forward
+#		it's what's used in between namespace instances
+# : closes the separator section and start the namespace section
+#	namespace samples: "creator!unknown artist=unknown", "character|species=renamon=gatomon"
+#
+#	any characters define the namespace
+#	=/! after the namespace makes it conditional
+#		where = is equality and ! is inequality
+#		each condition is separated by an =
+#	| will initiate a new namespace
+# : closes the namespace section and start the postpend section
+#	postpend sample: ")"
+#
+#	postpends characters after the namespace
+# > closes the postpend section
+#
+# Some post metadata available are:
+#	ID
+#	Cid
+#	Sha256
+#	Md5
+#	Ext (filename extension)
+
+
+# Multiple definitions can be supplied, the first one to succeed is used
+# if all definitions fail then the application will exit so it's a good
+# idea to use a guaranteed fallback
+
+# Here are some useful definitions
+# Uncomment to use
+
+## Result: "99 ~artistname1, artistname2~ char1, char2, char3 (gender1, gender2).png"
+#<::ID:><? ~:, :creator!unknown artist=sound warning:~><?[3] :, :character|species=renamon=gatomon:><? (:, :gender:)><::Ext:>
+
+## Result: bafybeig___.png
+#<::Cid:><::Ext:>
+
+## Result: f3d23___.png
+#<::Sha256:><::Ext:>
+
