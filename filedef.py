@@ -94,16 +94,32 @@ class lexer:
 	def indexed(self, start):
 		return self.text[start:self.index-1]
 
+	def indexedR(self, start):
+		return self.removeEscapeChar(self.indexed(start))
+
+	def removeEscapeChar(self, string):
+		retu = ""
+		skip = False
+		for c in string:
+			if not skip and c == "\\":
+				skip = True
+				continue
+
+			skip = False
+			retu += c
+		return retu
 
 	def lexText(self):
 		start = self.index
 		nextState = None
 		for c in self:
-			if c == "<":
+			if c == "\\":
+				self.next()
+			elif c == "<":
 				nextState = self.lexNewDef
 				break
 
-		self.emitIfAny(Token.TEXT, self.indexed(start))
+		self.emitIfAny(Token.TEXT, self.indexedR(start))
 		return nextState
 
 	def lexNewDef(self):
@@ -151,8 +167,10 @@ class lexer:
 	def lexPrepend(self):
 		start = self.index
 		for c in self:
-			if c == ":":
-				self.emitIfAny(Token.PREPEND, self.indexed(start))
+			if c == "\\":
+				self.next()
+			elif c == ":":
+				self.emitIfAny(Token.PREPEND, self.indexedR(start))
 				return self.lexSep
 
 		raise SyntaxError("Sequence end in prepend state:\n %s" % self.text[:start])
@@ -160,8 +178,10 @@ class lexer:
 	def lexSep(self):
 		start = self.index
 		for c in self:
-			if c == ":":
-				self.emitIfAny(Token.SEPARATOR, self.indexed(start))
+			if c == "\\":
+				self.next()
+			elif c == ":":
+				self.emitIfAny(Token.SEPARATOR, self.indexedR(start))
 				return self.lexNamespace
 
 		raise SyntaxError("Sequence end in separator state:\n %s" % self.text[:start])
@@ -169,8 +189,10 @@ class lexer:
 	def lexPostpend(self):
 		start = self.index
 		for c in self:
-			if c == ">":
-				self.emitIfAny(Token.POSTPEND, self.indexed(start))
+			if c == "\\":
+				self.next()
+			elif c == ">":
+				self.emitIfAny(Token.POSTPEND, self.indexedR(start))
 				self.emit(Token.END, c)
 				return self.lexText
 		raise SyntaxError("Sequence end in postpend state:\n %s" % self.text[:start])
@@ -178,15 +200,17 @@ class lexer:
 	def lexNamespace(self):
 		start = self.index
 		for c in self:
-			if c == ":":
-				self.emit(Token.NAMESPACE, self.indexed(start))
+			if c == "\\":
+				self.next()
+			elif c == ":":
+				self.emit(Token.NAMESPACE, self.indexedR(start))
 				return self.lexPostpend
-			if c == "=" or c == "!":
-				self.emit(Token.NAMESPACE, self.indexed(start))
+			elif c == "=" or c == "!":
+				self.emit(Token.NAMESPACE, self.indexedR(start))
 				self.emit(Token.COND, c)
 				return self.lexCond 
-			if c == "|":
-				self.emit(Token.NAMESPACE, self.indexed(start))
+			elif c == "|":
+				self.emit(Token.NAMESPACE, self.indexedR(start))
 				return self.lexNamespace
 		raise SyntaxError("Sequence end in namespace state:\n %s" % self.text[:start])
 
@@ -195,8 +219,10 @@ class lexer:
 		start = self.index
 		nextState = None
 		for c in self:
-			if c == ":":
-				self.emit(Token.CONDARG, self.indexed(start))
+			if c == "\\":
+				self.next()
+			elif c == ":":
+				self.emit(Token.CONDARG, self.indexedR(start))
 				return self.lexPostpend
 			elif c == "|":
 				nextState = self.lexNamespace
