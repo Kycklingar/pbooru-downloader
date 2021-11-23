@@ -19,7 +19,11 @@ def main():
 
 	startPage = int(floor((args.start_from / 50)))
 
-	search = Search(sopts, args.url, args.proxy, startPage)
+	proxy = args.proxy
+	if args.tor_browser:
+		proxy = "socks5h://localhost:9150"
+
+	search = Search(sopts, args.url, proxy, startPage)
 
 	compiler = FCompilers(args.filenamer)
 
@@ -57,6 +61,7 @@ def parseFlags():
 	parser.add_argument("--overwrite", metavar="", help="overwrite config file")
 	parser.add_argument("--url", default=defaultBooru, help="default: %s" % defaultBooru)
 	parser.add_argument("--proxy", default="socks5h://localhost:9050", help="default: socks5h://localhost:9050 use socks5h://localhost:9150 for tor browser")
+	parser.add_argument("--tor-browser", action="store_true", help="alias for '--proxy socks5h://localhost:9150'")
 	parser.add_argument("--filenamer", help="filename compiler defenitions file")
 	parser.add_argument("--start-from", type=int, default="0", help="offset the starting post")
 	parser.add_argument("--disable-progressbar", action="store_true", help="disables the progress bar")
