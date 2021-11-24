@@ -46,6 +46,7 @@ def main():
 			storage.write(cid, filename, gateway.get(cid))
 
 		prog.inc()
+		prog.display()
 
 	print()
 
