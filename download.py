@@ -35,7 +35,6 @@ def main():
 
 	for post in search:
 		prog.setMax(search.total)
-		prog.inc()
 		prog.display()
 
 		cid = post["Hash"]
@@ -45,6 +44,8 @@ def main():
 			filename = compiler.compile(kvs)
 			prog.print("...%s -> %s" %(cid[-6:], filename))
 			storage.write(cid, filename, gateway.get(cid))
+
+		prog.inc()
 
 	print()
 
