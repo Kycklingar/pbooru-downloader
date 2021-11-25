@@ -1,5 +1,7 @@
 # pbooru-downloader
-A downloader for The Permanent Booru
+A downloader for The Permanent Booru.
+
+Requires the requests library, install with `python -m pip install requests[socks]`
 
 ```
 usage: download.py [-h] [--overwrite] [--url URL] [--proxy PROXY]
