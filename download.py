@@ -28,7 +28,7 @@ def main():
 	compiler = FCompilers(args.filenamer)
 
 	gateway = Gateway(args.gateway, proxy=args.gateway_proxy)
-	storage = Storage(args.path)
+	storage = Storage(args.path, args.tags)
 
 	prog = ProgressBar(0, args.disable_progressbar)
 	prog.inc(startPage * 50)
@@ -43,7 +43,7 @@ def main():
 			kvs = postToDictList(post)
 			filename = compiler.compile(kvs)
 			prog.print("...%s -> %s" %(cid[-6:], filename))
-			storage.write(cid, filename, gateway.get(cid))
+			storage.write(cid, filename, gateway.get(cid), getTags(post))
 
 		prog.inc()
 		prog.display()
@@ -67,6 +67,7 @@ def parseFlags():
 	parser.add_argument("--filenamer", help="filename compiler defenitions file")
 	parser.add_argument("--start-from", type=int, default="0", help="offset the starting post")
 	parser.add_argument("--disable-progressbar", action="store_true", help="disables the progress bar")
+	parser.add_argument("--tags", action="store_true", help="save tags as .txt alongside files")
 
 	searchGroup = parser.add_argument_group(title="search options")
 	searchGroup.add_argument("-a", "--and", metavar="", help="tags to download (AND)", dest="tand")
@@ -116,6 +117,20 @@ def postToDictList(post):
 	
 
 	return kvs
+
+def getTags(post):
+	tags = []
+	for t in post["Tags"]:
+		tag, namespace = t["Tag"], t["Namespace"]
+		if namespace == "none":
+			if ":" in tag:
+				tags.append(":" + tag)
+			else:
+				tags.append(tag)
+		else:
+			tags.append("%s:%s" %(namespace, tag))
+
+	return tags
 
 
 def interactive():
@@ -286,11 +301,12 @@ class Gateway:
 		return resp.content
 
 class Storage:
-	def __init__(self, dataDir):
+	def __init__(self, dataDir, tags):
 		self.dataDir = dataDir
 		self.cacheFilePath = path.join(self.dataDir, ".cache")
 
 		makedirs(self.dataDir, exist_ok=True)
+		self.tags = tags
 		
 		self.initCache()
 	
@@ -311,11 +327,18 @@ class Storage:
 					if len(cid) > 0:
 						self.cache.add(cid)
 
-	def write(self, cid, filename, data):
+	def write(self, cid, filename, data, tags):
 		with open(path.join(self.dataDir, filename), "wb") as f:
 			f.write(data)
+			if self.tags:
+				self.writeTags(filename, tags)
 			self.writeCache(cid, filename)
-	
+
+	def writeTags(self, filename, tags):
+		with open(path.join(self.dataDir, filename + ".txt"), "w") as f:
+			for tag in tags:
+				f.write(tag + "\n")
+
 	def writeCache(self, cid, filename):
 		with open(self.cacheFilePath, "a") as f:
 			f.write("%s %s\n" % (cid, filename))
