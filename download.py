@@ -295,7 +295,7 @@ class Gateway:
 		self.url = url
 
 	def get(self, cid):
-		resp = requests.get(self.url + "/ipfs/%s" % cid, proxies=self.proxies)
+		resp = requests.get(self.url + "/ipfs/%s" % cid, proxies=self.proxies, allow_redirects=False)
 		resp.raise_for_status()
 
 		return resp.content
