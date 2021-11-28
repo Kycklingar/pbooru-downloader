@@ -295,8 +295,14 @@ class Gateway:
 		self.url = url
 
 	def get(self, cid):
-		resp = requests.get(self.url + "/ipfs/%s" % cid, proxies=self.proxies, allow_redirects=False)
-		resp.raise_for_status()
+		while True:
+			resp = requests.get(self.url + "/ipfs/%s" % cid, proxies=self.proxies, allow_redirects=False)
+			if resp.status_code == 200 or resp.status_code == 301:
+				break
+			if resp.status_code == 408:
+				continue
+			resp.raise_for_status()
+
 
 		return resp.content
 
