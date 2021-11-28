@@ -35,6 +35,7 @@ class ProgressBar:
 
 	def printbar(self):
 		(termWidth, _) = get_terminal_size()
+		termWidth -= 1
 
 		percent = (self.i / self.max)
 		percentStr = "%3d%%" % int(percent * 100)
