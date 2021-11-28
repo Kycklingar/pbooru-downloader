@@ -341,12 +341,12 @@ class Storage:
 			self.writeCache(cid, filename)
 
 	def writeTags(self, filename, tags):
-		with open(path.join(self.dataDir, filename + ".txt"), "w") as f:
+		with open(path.join(self.dataDir, filename + ".txt"), "w", encoding="utf-8") as f:
 			for tag in tags:
 				f.write(tag + "\n")
 
 	def writeCache(self, cid, filename):
-		with open(self.cacheFilePath, "a") as f:
+		with open(self.cacheFilePath, "a", encoding="utf-8") as f:
 			f.write("%s %s\n" % (cid, filename))
 
 
