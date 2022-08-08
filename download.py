@@ -37,7 +37,7 @@ def main():
 		prog.setMax(search.total)
 		prog.display()
 
-		cid = post["Hash"]
+		cid = post["Cid"]
 
 		if cid not in storage:
 			kvs = postToDictList(post)
@@ -104,7 +104,7 @@ def postToDictList(post):
 	kvs = []
 	for tag in post["Tags"]:
 		kvs.append((tag["Namespace"], tag["Tag"]))
-	kvs.append(("Cid", post["Hash"]))
+	kvs.append(("Cid", post["Cid"]))
 	kvs.append(("Sha256", post["Sha256"]))
 	kvs.append(("Md5", post["Md5"]))
 	kvs.append(("ID", str(post["ID"])))
